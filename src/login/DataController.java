@@ -30,25 +30,37 @@ public class DataController extends HttpServlet {
 		
 		
 		String location = request.getParameter("location");
-		String userInfo = (String)request.getSession().getAttribute("userinfo");
-		String profession = "Student";
-		String works = "Arizona%20State%20University";
-		String[] urls = {
-				"https://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id=X1-ZWz1g3fx99xekr_5m9vn&address=3255+S+Dorsey+Ln&citystatezip=Tempe%2C+AZ"+"&key="+API_KEY,
-				"https://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id=X1-ZWz1g3fx99xekr_5m9vn&address=401+S+Mill+Ave&citystatezip=Tempe%2C+AZ"+"&key="+API_KEY,
-				"https://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id=X1-ZWz1g3fx99xekr_5m9vn&address=114+E+7th+St&citystatezip=Tempe%2C+AZ"+"&key="+API_KEY,
-				"https://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id=X1-ZWz1g3fx99xekr_5m9vn&address=202+E+University+Dr&citystatezip=Tempe%2C+AZ"+"&key="+API_KEY,
-				"https://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id=X1-ZWz1g3fx99xekr_5m9vn&address=149+S+Farmer+Ave&citystatezip=Tempe%2C+AZ"+"&key="+API_KEY,
-				"https://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id=X1-ZWz1g3fx99xekr_5m9vn&address=250+E+University+Dr&citystatezip=Tempe%2C+AZ"+"&key="+API_KEY
-				
-				
-		};
-		JSONObject result = null;
+		String zipCode = null;
 
+		if(!isValid(location)) {
+			String obj=(String)request.getSession().getAttribute("userinfo");
+
+			JSONObject userInfo = new JSONObject(obj);
+			JSONObject temp =  (JSONObject) userInfo.opt("positions");
+			JSONArray arr = (JSONArray)temp.opt("values");
+			String loc = (String) ((JSONObject)((JSONObject)arr.get(0)).opt("location")).opt("name");
+			location = loc.split(",")[0];
+
+		}
+		String address[] = null;
+		if(isValid(location)) {
+			if(!isValid(zipCode)) {
+				location = location.replaceAll(" ", "%20");
+				String responseobj=getUrlObj("https://maps.googleapis.com/maps/api/place/textsearch/json?query="+location+"%20zipcode&key="+API_KEY,null,null,"GET");
+				JSONObject mapsData = new JSONObject(responseobj);
+				JSONArray temp = (JSONArray) mapsData.opt("results");
+				JSONObject entry1 = (JSONObject) temp.opt(0);
+				address[] = entry1.optString("formatted_address").split(",");
+			}
+		}
+
+
+		JSONObject result = null;
+		API_KEY = "X1-ZWz1g3fx99xekr_5m9vn";
 		try {
 			JSONArray jsonArray = new JSONArray();
-			for(int i=0; i<urls.length; i++) {
-				String responseobj=TwitterLogin.getUrlObj(urls[i],null,null,"GET");
+			for(int i=0; i<address.length; i++) {
+				String responseobj=TwitterLogin.getUrlObj("https://www.zillow.com/webservice/GetDeepSearchResults.htm?zws-id="+API_KEY+"&address="+address[i],null,null,"GET");
 				result = new JSONObject();
 				JSONObject json = XML.toJSONObject(responseobj);
 				JSONObject jArray = (JSONObject) json.opt("SearchResults:searchresults");
